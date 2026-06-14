@@ -1,0 +1,22 @@
+# Wails / Go / Frontend
+lesson-cap/build/bin/
+lesson-cap/frontend/dist/
+lesson-cap/frontend/node_modules/
+wailsjs/
+go.sum
+
+# OS / IDE
+.DS_Store
+.vscode/
+*.swp
+
+# Project specific
+*.zip
+*.log
+roi_probe.png
+user_selection.png
+selection.png
+crop.png
+select.png
+s_*.png
+test_build
