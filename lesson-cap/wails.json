@@ -1,0 +1,25 @@
+{
+  "name": "LessonCap",
+  "author": {
+    "name": "wenliu",
+    "email": "wenliu@example.com"
+  },
+  "info": {
+    "productName": "LessonCap",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright 2024",
+    "bundleBrowserIdentifier": "com.lessoncap.capture"
+  },
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "http://localhost:34115",
+  "wailsjsdir": "./frontend/wailsjs",
+  "assetdir": "frontend/dist",
+  "appargs": "",
+  "outputfilename": "LessonCap",
+  "bundleName": "LessonCap",
+  "frontend:dir": "frontend",
+  "author_name": "wenliu",
+  "author_email": "wenliu@example.com"
+}
