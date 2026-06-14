@@ -2,8 +2,8 @@
 
 > **智能直播课件自动提取工具** - 让每一场直播课都变成一本完美的 PDF 笔记。
 
-[![Build and Release macOS](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/release.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/release.yml)
-[![Platform](https://img.shields.io/badge/platform-macOS-blue.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/releases)
+[![Build and Release macOS](https://github.com/roshameow/LessonCap/actions/workflows/release.yml/badge.svg)](https://github.com/roshameow/LessonCap/actions/workflows/release.yml)
+[![Platform](https://img.shields.io/badge/platform-macOS-blue.svg)](https://github.com/roshameow/LessonCap/releases)
 
 LessonCap 是一款专为学生和职场人士设计的 macOS 桌面应用。它能自动监测屏幕上的视频课件，并在老师翻页时瞬间抓取，自动去重，最后导出为高清 PDF。
 
@@ -19,7 +19,7 @@ LessonCap 是一款专为学生和职场人士设计的 macOS 桌面应用。它
 
 由于 LessonCap 为个人开发者项目，未通过苹果付费认证，请按照以下步骤安装：
 
-1. 前往 [Releases](https://github.com/YOUR_USERNAME/YOUR_REPO/releases) 下载最新的 `LessonCap_macOS.zip`。
+1. 前往 [Releases](https://github.com/roshameow/LessonCap/releases) 下载最新的 `LessonCap_macOS.zip`。
 2. 解压后，**请勿直接双击**。
 3. **关键：** 在 `LessonCap.app` 上点击 **鼠标右键**，选择 **“打开 (Open)”**。
 4. 在弹出的系统警告对话框中，再次点击 **“打开”**。
@@ -40,7 +40,7 @@ LessonCap 是一款专为学生和职场人士设计的 macOS 桌面应用。它
 
 ## 🤝 贡献与反馈
 
-如果你在使用中遇到任何问题，欢迎提交 [Issue](https://github.com/YOUR_USERNAME/YOUR_REPO/issues)。
+如果你在使用中遇到任何问题，欢迎提交 [Issue](https://github.com/roshameow/LessonCap/issues)。
 
 ---
 
