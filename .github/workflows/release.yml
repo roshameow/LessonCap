@@ -1,58 +1,64 @@
-name: Build and Release macOS
+name: Build and Release
 
 on:
   push:
     tags:
-      - 'v*' # Trigger on version tags like v1.0.0
+      - 'v*'
 
 jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install Wails CLI
+      - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-      - name: Build macOS App
+      - name: Build macOS
         run: |
           cd lesson-cap
           npm install --prefix frontend
           wails build -platform darwin/universal -clean
-
-      - name: Ad-hoc Sign and Package
+      - name: Sign and Package
         run: |
           cd lesson-cap/build/bin
-          # Sign the app to avoid immediate OS termination
           codesign --force --deep --sign - LessonCap.app
-          # Create zip
           zip -r LessonCap_macOS.zip LessonCap.app
-
-      - name: Create Release
+      - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: lesson-cap/build/bin/LessonCap_macOS.zip
-          name: Release ${{ github.ref_name }}
-          body: |
-            ## LessonCap ${{ github.ref_name }}
-            
-            智能直播课件自动捕获工具 (macOS)
-            
-            ### ⚠️ 重要安装说明 (macOS)
-            由于程序未在苹果商店上架，下载后请：
-            1. 右键点击 `LessonCap.app`，选择 **“打开”**。
-            2. 在弹出的警告中再次点击 **“打开”**。
-            3. 请确保在“系统设置 -> 隐私与安全性 -> 屏幕录制”中允许本程序。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+      - name: Build Windows
+        run: |
+          cd lesson-cap
+          npm install --prefix frontend
+          wails build -platform windows/amd64 -clean
+      - name: Package
+        run: |
+          cd lesson-cap/build/bin
+          Compress-Archive -Path LessonCap.exe -DestinationPath LessonCap_Windows.zip
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: lesson-cap/build/bin/LessonCap_Windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

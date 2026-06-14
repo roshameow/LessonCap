@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/color"
@@ -68,50 +70,56 @@ func (a *App) OpenSystemSettings() {
 	exec.Command("open", "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture").Run()
 }
 
-// SelectArea V36: Reverted to the SUCCESSFUL V22 logic (No delays, Step 2 scan)
+// SelectArea handles cross-platform region selection
 func (a *App) SelectArea() (string, error) {
-	// 1. Capture screen reference IMMEDIATELY (V22 style)
-	bounds := screenshot.GetDisplayBounds(0)
-	fullScreen, err := screenshot.CaptureRect(bounds)
-	if err != nil {
-		return "无法截图，请确认权限", fmt.Errorf("PERM")
-	}
+	// macOS: Keep using the native experience the user prefers
+	if runtime.Environment(a.ctx).Platform == "darwin" {
+		bounds := screenshot.GetDisplayBounds(0)
+		fullScreen, err := screenshot.CaptureRect(bounds)
+		if err != nil { return "无权限", fmt.Errorf("PERM") }
 
-	// 2. Hide window and start selection
-	runtime.WindowHide(a.ctx)
-	defer runtime.WindowShow(a.ctx)
+		runtime.WindowHide(a.ctx)
+		defer runtime.WindowShow(a.ctx)
 
-	tmpPath := filepath.Join(a.tempDir, "select.png")
-	os.Remove(tmpPath)
+		tmpPath := filepath.Join(a.tempDir, "select.png")
+		os.Remove(tmpPath)
+		cmd := exec.Command("screencapture", "-i", "-x", "-o", tmpPath)
+		if err := cmd.Run(); err != nil { return "已取消", nil }
 
-	cmd := exec.Command("screencapture", "-i", "-x", "-o", tmpPath)
-	if err := cmd.Run(); err != nil {
-		return "已取消", nil
-	}
+		f, _ := os.Open(tmpPath)
+		cropped, _, _ := image.Decode(f)
+		f.Close()
 
-	// 3. Load user crop
-	f, _ := os.Open(tmpPath)
-	cropped, _, _ := image.Decode(f)
-	f.Close()
-	if cropped == nil { return "截图识别失败", nil }
-
-	// 4. Use the proven V22 findSubImage algorithm
-	foundX, foundY := findSubImageV22(fullScreen, cropped)
-	
-	if foundX != -1 {
-		roi := &ROI{
-			X:      foundX + bounds.Min.X,
-			Y:      foundY + bounds.Min.Y,
-			Width:  cropped.Bounds().Dx(),
-			Height: cropped.Bounds().Dy(),
+		foundX, foundY := findSubImageV22(fullScreen, cropped)
+		if foundX != -1 {
+			roi := &ROI{X: foundX + bounds.Min.X, Y: foundY + bounds.Min.Y, Width: cropped.Bounds().Dx(), Height: cropped.Bounds().Dy()}
+			a.mu.Lock(); a.roi = roi; a.mu.Unlock()
+			return fmt.Sprintf("锁定成功: %dx%d", roi.Width, roi.Height), nil
 		}
-		a.mu.Lock()
-		a.roi = roi
-		a.mu.Unlock()
-		return fmt.Sprintf("锁定成功: %dx%d", roi.Width, roi.Height), nil
+		return "锁定失败", nil
 	}
 
-	return "锁定失败：请不要在视频播放时拉框", nil
+	// Windows/Linux: Trigger frontend selection mode (handled in App.svelte)
+	return "FRONTEND_SELECT", nil
+}
+
+func (a *App) GetDisplayData() map[string]interface{} {
+	bounds := screenshot.GetDisplayBounds(0)
+	img, _ := screenshot.CaptureRect(bounds)
+	var buf bytes.Buffer
+	png.Encode(&buf, img)
+	return map[string]interface{}{
+		"image": "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
+		"w":     bounds.Dx(),
+		"h":     bounds.Dy(),
+	}
+}
+
+func (a *App) SetROI(roi ROI) string {
+	a.mu.Lock()
+	a.roi = &roi
+	a.mu.Unlock()
+	return fmt.Sprintf("锁定成功: %dx%d", roi.Width, roi.Height)
 }
 
 func findSubImageV22(full, sub image.Image) (int, int) {

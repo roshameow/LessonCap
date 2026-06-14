@@ -4,20 +4,30 @@
     StartCapture, 
     StopCapture, 
     SelectArea,
+    GetDisplayData,
+    SetROI,
     ExportPDF, 
     GetCapturedCount,
     OpenFolder
   } from '../wailsjs/go/main/App';
-  import { EventsOn, Quit } from '../wailsjs/runtime/runtime';
+  import { EventsOn, Quit, WindowSetSize, WindowSetPosition, WindowSetAlwaysOnTop } from '../wailsjs/runtime/runtime';
 
   let status = "准备就绪";
   let capturedCount = 0;
   let isCapturing = false;
   let roiText = "未选择区域";
 
+  // Windows-style selection overlay state
+  let isWinSelecting = false;
+  let mirrorImg = "";
+  let winW, winH;
+  let startX, startY, curX, curY;
+  let isDrawing = false;
+  let origPos = { x: 0, y: 0 };
+  let origSize = { w: 0, h: 0 };
+
   onMount(async () => {
     capturedCount = await GetCapturedCount();
-    
     EventsOn("new_slide", (count) => {
       capturedCount = count;
       status = `检测到课件翻页，已自动捕获！(第 ${count} 张)`;
@@ -28,15 +38,71 @@
     status = "正在启动选择工具...";
     try {
       const res = await SelectArea();
-      roiText = res;
-      if (res.includes("锁定成功")) {
-          status = "区域选择成功！";
+      if (res === "FRONTEND_SELECT") {
+          // Windows Mode
+          const data = await GetDisplayData();
+          mirrorImg = data.image;
+          winW = data.w;
+          winH = data.h;
+          
+          // Store window state to restore later
+          // Note: In Wails, we might need to get current position if possible
+          // But for now, let's just go fullscreen
+          isWinSelecting = true;
+          WindowSetAlwaysOnTop(true);
+          WindowSetPosition(0, 0);
+          WindowSetSize(winW, winH);
       } else {
-          status = res;
+          // macOS Native Mode
+          roiText = res;
+          status = res.includes("锁定成功") ? "区域选择成功！" : res;
       }
     } catch (e) {
       status = "选区失败，请重试";
     }
+  }
+
+  function onMouseDown(e) {
+    if (!isWinSelecting) return;
+    isDrawing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    curX = e.clientX;
+    curY = e.clientY;
+  }
+
+  function onMouseMove(e) {
+    if (!isDrawing) return;
+    curX = e.clientX;
+    curY = e.clientY;
+  }
+
+  async function onMouseUp() {
+    if (!isDrawing) return;
+    isDrawing = false;
+    
+    const x = Math.min(startX, curX);
+    const y = Math.min(startY, curY);
+    const w = Math.abs(curX - startX);
+    const h = Math.abs(curY - startY);
+
+    if (w > 10 && h > 10) {
+        roiText = await SetROI({ x, y, width: w, height: h });
+        isWinSelecting = false;
+        WindowSetAlwaysOnTop(false);
+        WindowSetSize(400, 560); // Restore default size
+        WindowSetPosition(100, 100);
+        status = "区域选择成功！";
+    }
+  }
+
+  function cancelWinSelect(e) {
+      if (e.key === "Escape" && isWinSelecting) {
+          isWinSelecting = false;
+          WindowSetAlwaysOnTop(false);
+          WindowSetSize(400, 560);
+          status = "已取消选择";
+      }
   }
 
   async function toggleCapture() {
@@ -59,54 +125,75 @@
     const res = await ExportPDF("");
     status = res;
   }
+
+  $: snipStyle = isDrawing ? `
+    left: ${Math.min(startX, curX)}px;
+    top: ${Math.min(startY, curY)}px;
+    width: ${Math.abs(curX - startX)}px;
+    height: ${Math.abs(curY - startY)}px;
+  ` : '';
 </script>
 
-<main>
-  <div class="container">
-    <header>
-      <div class="title-bar">
-        <h1>LessonCap 🎓</h1>
-        <button class="quit-btn" on:click={Quit}>✕</button>
+<svelte:window on:keydown={cancelWinSelect} />
+
+<main class:win-selecting={isWinSelecting} 
+      on:mousedown={onMouseDown} 
+      on:mousemove={onMouseMove} 
+      on:mouseup={onMouseUp}>
+  
+  {#if isWinSelecting}
+    <div class="selection-overlay">
+        <img src={mirrorImg} alt="mirror" class="mirror-bg" />
+        <div class="tip">在屏幕上拉框选择视频区域 (Esc取消)</div>
+        {#if isDrawing}
+          <div class="selection-box" style={snipStyle}></div>
+        {/if}
+    </div>
+  {:else}
+    <div class="container">
+      <header>
+        <div class="title-bar">
+          <h1>LessonCap 🎓</h1>
+          <button class="quit-btn" on:click={Quit}>✕</button>
+        </div>
+        <p class="subtitle">智能直播课件自动提取 · V36 最终版</p>
+      </header>
+
+      <div class="stats">
+        <div class="stat-item">
+          <span class="label">当前状态</span>
+          <span class="value status-text">{status}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">锁定区域</span>
+          <span class="value roi-info">{roiText}</span>
+        </div>
       </div>
-      <p class="subtitle">智能直播课件自动提取 · V36 最终版</p>
-    </header>
 
-    <div class="stats">
-      <div class="stat-item">
-        <span class="label">当前状态</span>
-        <span class="value status-text">{status}</span>
+      <div class="controls">
+        <button class="btn secondary" on:click={handleSelect}>
+          🎯 1. 鼠标拉框选择区域
+        </button>
+
+        <button class="btn primary" class:active={isCapturing} on:click={toggleCapture}>
+          {isCapturing ? "⏹ 停止自动监测" : "▶️ 2. 开始自动监测"}
+        </button>
+
+        <button class="btn success" on:click={handleExport} disabled={isCapturing || capturedCount === 0}>
+          📄 3. 导出 PDF 到桌面
+        </button>
       </div>
-      <div class="stat-item">
-        <span class="label">锁定区域</span>
-        <span class="value roi-info">{roiText}</span>
+
+      <div class="hint-box">
+          提示：监测开启后，若画面变化超过 5% 即会自动截图。
+      </div>
+
+      <div class="footer">
+         <button class="text-link" on:click={OpenFolder}>查看临时截图</button>
+         <div class="count-box">已截取: {capturedCount}</div>
       </div>
     </div>
-
-    <div class="controls">
-      <button class="btn secondary" on:click={handleSelect}>
-        🎯 1. 鼠标拉框选择区域
-      </button>
-
-      <button class="btn primary" class:active={isCapturing} on:click={toggleCapture}>
-        {isCapturing ? "⏹ 停止自动监测" : "▶️ 2. 开始自动监测"}
-      </button>
-
-      <button class="btn success" on:click={handleExport} disabled={isCapturing || capturedCount === 0}>
-        📄 3. 导出 PDF 到桌面
-      </button>
-    </div>
-
-    <div class="hint-box">
-        💡 <b>重要：</b> 如果点击按钮无反应，请前往：<br/>
-        [系统设置] -> [隐私与安全性] -> [屏幕录制]，<br/>
-        将 <b>LessonCap</b> 的开关<b>关闭再重新开启</b>。
-    </div>
-
-    <div class="footer">
-       <button class="text-link" on:click={OpenFolder}>查看临时截图</button>
-       <div class="count-box">已截取: {capturedCount}</div>
-    </div>
-  </div>
+  {/if}
 </main>
 
 <style>
@@ -124,6 +211,13 @@
     flex-direction: column;
     box-sizing: border-box;
   }
+
+  /* Win Selecting Styles */
+  main.win-selecting { background: #000; cursor: crosshair; }
+  .selection-overlay { position: relative; width: 100%; height: 100%; overflow: hidden; }
+  .mirror-bg { width: 100%; height: 100%; object-fit: contain; opacity: 0.8; pointer-events: none; }
+  .selection-box { position: absolute; border: 2px solid #64ffda; background: rgba(100, 255, 218, 0.1); box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); pointer-events: none; }
+  .tip { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #64ffda; padding: 10px 20px; border-radius: 20px; border: 1px solid #64ffda; z-index: 100; }
 
   .title-bar { display: flex; justify-content: space-between; align-items: center; }
   h1 { margin: 0; font-size: 1.8rem; color: #64ffda; }
