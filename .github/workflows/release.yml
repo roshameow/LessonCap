@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write # Crucial for creating releases
+
 jobs:
   build-macos:
     runs-on: macos-latest
