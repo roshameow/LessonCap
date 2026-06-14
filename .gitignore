@@ -5,10 +5,15 @@ lesson-cap/frontend/node_modules/
 wailsjs/
 go.sum
 
-# OS / IDE
-.DS_Store
+# IDEs
 .vscode/
+.idea/
 *.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Project specific
 *.zip
@@ -20,3 +25,4 @@ crop.png
 select.png
 s_*.png
 test_build
+app_debug.log
