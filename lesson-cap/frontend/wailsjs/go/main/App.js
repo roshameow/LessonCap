@@ -26,6 +26,10 @@ export function GetCapturedCount() {
   return window['go']['main']['App']['GetCapturedCount']();
 }
 
+export function GetDisplayData() {
+  return window['go']['main']['App']['GetDisplayData']();
+}
+
 export function GetMirrorData() {
   return window['go']['main']['App']['GetMirrorData']();
 }
@@ -44,6 +48,10 @@ export function Quit() {
 
 export function SelectArea() {
   return window['go']['main']['App']['SelectArea']();
+}
+
+export function SetROI(arg1) {
+  return window['go']['main']['App']['SetROI'](arg1);
 }
 
 export function StartCapture() {

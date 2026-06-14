@@ -14,6 +14,8 @@ export function ExportPDF(arg1:string):Promise<string>;
 
 export function GetCapturedCount():Promise<number>;
 
+export function GetDisplayData():Promise<Record<string, any>>;
+
 export function GetMirrorData():Promise<Record<string, any>>;
 
 export function GetSnipData():Promise<Record<string, any>>;
@@ -23,6 +25,8 @@ export function OpenFolder():Promise<void>;
 export function Quit():Promise<void>;
 
 export function SelectArea():Promise<string>;
+
+export function SetROI(arg1:main.ROI):Promise<string>;
 
 export function StartCapture():Promise<string>;
 
