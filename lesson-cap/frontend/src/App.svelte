@@ -156,7 +156,7 @@
           <h1>LessonCap 🎓</h1>
           <button class="quit-btn" on:click={Quit}>✕</button>
         </div>
-        <p class="subtitle">智能直播课件自动提取 · V36 最终版</p>
+        <p class="subtitle">课件变化监测与 PDF 导出</p>
       </header>
 
       <div class="stats">
@@ -185,7 +185,7 @@
       </div>
 
       <div class="hint-box">
-          提示：监测开启后，若画面变化超过 5% 即会自动截图。
+          提示：监测课件区域的图像变化；动画、弹幕或遮挡可能影响截图结果。
       </div>
 
       <div class="footer">
